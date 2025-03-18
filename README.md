@@ -47,5 +47,7 @@ Data Sources
 - Ember - European Electricity Review (2022)
 - Energy Institute - Statistical Review of World Energy (2023)
 - Our World in Data
+
+
 Author
 DANNY130
