@@ -1,0 +1,287 @@
+---
+title: "Final Project"
+author: "Danny Pham"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE, crop = TRUE}
+library(tidyverse)
+if (!require(plotly)) install.packages('plotly')
+if (!require(shiny)) install.packages('tidyverse')
+
+# Load the necessary libraries
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+library(plotly)
+
+```
+
+### Exercise 1
+
+Insert any text here.
+
+```{r code-chunk-label}
+# Insert code for Exercise 1 here
+#| crop = true
+
+# Get the world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf") |>
+  filter(name != "Antarctica")
+renewable_grow <- read.csv("annual-percentage-change-renewables.csv") |>
+  filter(Code != "NA") 
+
+renewable_grow$Renewables....growth. <- round(renewable_grow$Renewables....growth.,2)
+
+renewable_plot <- function(region, year) {
+renewable_grow22 <- renewable_grow |>
+  filter(Year == year)
+
+renewable_grow_map22 <- left_join(world_map,renewable_grow22,
+                                
+                                c( "iso_a3_eh"= "Code")) |>
+rename( "growth" = "Renewables....growth.")
+
+if (region == "World") {
+  
+} else if (region == "North America" | region == "Latin America & Caribbean") {
+  renewable_grow_map22 <- filter(renewable_grow_map22, region_wb == region)
+}
+  else {renewable_grow_map22 <- filter(renewable_grow_map22, region_un == region )}
+
+
+ p <- ggplot(data = renewable_grow_map22) +
+ geom_sf( aes( fill = growth + runif(nrow(renewable_grow_map22),min = 0, max = 0.001), text = paste("</b>",admin,"</b>\n growth rate:",signif(growth,2))), color = "black")+
+  #scale_fill_manual("", values = my_colors)+
+ labs(
+   title = paste("Annual percentage change in renewable energy generation in", year),
+   fill = "Growth %") +
+  scale_fill_continuous(low = "red", high = "green", limits = c(-20, 20), guide = guide_colorbar(direction = "horizontal", ticks = TRUE, nbin = 50, barwidth = 10, barheight = 1, label.position = "bottom", title.position = "top", title.hjust = 0.5)) +
+ theme_map() 
+#scale_fill_continuous(low = "red", mid = "white", high = "blue", labels = scales::percent)
+
+ ggplotly(p, tooltip = "text") |>
+   style(hoveron = "fills")
+
+}
+
+renewable_plot("World", 2022)
+
+
+```
+
+
+
+
+
+### Exercie 1 Shiny
+```{r}
+library(shiny)
+library(ggplot2)
+library(plotly)
+
+region <- c("World", "North America", "Latin America & Caribbean", "Asia", "Africa", "Europe","Oceania")
+
+# Define UI
+ui <- fluidPage(
+  titlePanel("Renewable Energy Growth"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("region", "Select Region", choices = region),
+      sliderInput("year", "Select Year", min = 2000, max = 2022, value = 2020)
+    ),
+    mainPanel(
+      plotlyOutput("renewable_plot", height = "600px", width = "800px")
+    )
+  )
+)
+
+# Define server
+server <- function(input, output) {
+  output$renewable_plot <- renderPlotly({
+    # Call your existing function with user inputs
+    renewable_plot(input$region, input$year)
+  })
+}
+
+# Create Shiny app
+shinyApp(ui = ui, server = server)
+
+```
+
+### Test Url
+```{r}
+
+#read.csv("https://ourworldindata.org/grapher/annual-change-renewables/annual-change-renewables.csv")
+
+
+
+```
+
+
+
+
+
+
+
+### Exercise 2
+```{r}
+energy_gen <- read.csv("modern-renewable-prod.csv") 
+
+egen_plot <- function(region, year_dat) {
+  energy_gen_spec_line <- energy_gen |>
+    filter(Entity == region & Year <= year_dat) |>
+    rename( "Wind"="Electricity.from.wind...TWh" ,"Hydro" = "Electricity.from.hydro...TWh", "Solar" = "Electricity.from.solar...TWh","Other"  = "Other.renewables.including.bioenergy...TWh")
+  energy_gen_spec_point <- energy_gen_spec_line |>
+    pivot_longer(cols = c(Hydro, Wind, Solar, Other), names_to = "sources",
+                 values_to = "Energy" )
+  
+  p <- ggplot()  +
+    geom_line(data = energy_gen_spec_line,aes(x = Year, y = Wind), color = "purple") + 
+    geom_line(data = energy_gen_spec_line,aes(x = Year, y = Hydro), color = "pink") +
+    geom_line(data = energy_gen_spec_line,aes(x = Year, y = Solar), color = "green") +
+    geom_line(data = energy_gen_spec_line,aes(x = Year, y = Other), color = "chartreuse4") +
+    geom_point(data = energy_gen_spec_point, aes(x = Year, y = Energy, color = sources, text = paste("</b>Generated Energy",signif(Energy,2)," TWh","</b>\n Year:", Year)), size = 2) +
+    theme_minimal() +
+    scale_y_continuous(breaks = seq(0, 1000, by = 200), labels = paste(seq(0, 1000, by = 200), "TWh"))
+    
+  
+  ggplotly(p, tooltip = "text") |>
+   style(hoveron = "fill")
+
+    
+  
+}
+
+egen_plot("North America (Ember)", 2007)
+
+```
+
+
+
+
+
+### Exercise shiny
+```{r}
+
+# Define UI for application
+ui <- fluidPage(
+  titlePanel("Energy Generation"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("region", "Select Region:", choices = unique(energy_gen$Entity)),
+      sliderInput("year", "Select Year:", min = min(energy_gen$Year), max = max(energy_gen$Year), value = max(energy_gen$Year))
+    ),
+    mainPanel(
+      plotlyOutput("egenPlot")
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output) {
+  output$egenPlot <- renderPlotly({
+    egen_plot(input$region, input$year)
+  })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+
+```
+
+
+### Shiny All
+
+```{r}
+
+ui <- fluidPage(
+  #Create separate tabs and inputs for worldmap and chart
+  
+  tabsetPanel( id = "tab",
+               tabPanel(
+                 title = "World Map", value = "renewable_grow",
+                 sidebarPanel(selectInput("region", "Select Region", choices = region, selected = "World")),
+                 sidebarPanel(sliderInput("year", "Select Year", min = 2000, max = 2022, value = 2022))
+               ),
+               tabPanel(
+                 title = "Generated", value = "energy_gen",
+                 sidebarPanel(selectInput("region", "Select Region:", choices = unique(energy_gen$Entity)),
+      sliderInput("year", "Select Year:", min = min(energy_gen$Year), max = max(energy_gen$Year), value = max(energy_gen$Year))
+               )
+  ),
+    mainPanel(
+      h3(textOutput("TitleText")),
+      h5(textOutput("SUbtitleText")),
+      
+      plotlyOutput("renewable_plot", height = "600px", width = "800px"),
+      plotlyOutput("egen_plot")
+    )
+  )
+)
+
+# Define server
+server <- function(input, output) {
+  output$renewable_plot <- renderPlotly({
+    # Call your existing function with user inputs
+    renewable_plot(input$region, input$year)
+  })
+}
+
+# Create Shiny app
+shinyApp(ui = ui, server = server)
+
+```
+
+```{r}
+
+ui <- fluidPage(
+  titlePanel("Renewable Energy Dashboard"),
+  
+  #Create separate tabs and inputs for plotting
+  tabsetPanel(
+    id = "tab",
+    tabPanel(title = "Renewable Plot",
+             sidebarPanel(
+               selectInput("region", "Select Region:", choices = region),
+               sliderInput("year","Select Year:",min = 1956, max = 2022, value = 2022 )
+             ),
+             
+             plotlyOutput("renewable_plot")
+             ),
+    tabPanel(
+      title = "Energy Generation Plot",
+      sidebarPanel(
+        selectInput("area", "Select Region:", choices = unique(energy_gen$Entity)),
+      sliderInput("Year", "Select Year:", min = min(energy_gen$Year), max = max(energy_gen$Year), value = max(energy_gen$Year))
+    ),
+    plotlyOutput("egen-plot")
+  )
+)
+)
+
+server <- function(input, output) {
+  #Render renewable_plot
+  output$renewable_plot <- renderPlotly({
+    renewable_plot(input$region, input$year)
+  })
+  #Render egen_plot
+  output$egen-plot <- renderPlotly({
+    egen_plot(input$area, input$Year)
+  })
+}
+
+#Run the app
+shinyApp(ui, server)
+
+
+```
+
+
+
+
+...
+

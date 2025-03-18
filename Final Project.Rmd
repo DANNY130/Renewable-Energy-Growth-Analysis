@@ -1,0 +1,52 @@
+---
+title: "Final Project"
+author: "Danny Pham"
+date: "`r Sys.Date()`"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+```
+
+### Exercise 1
+
+Insert any text here.
+
+```{r code-chunk-label}
+# Insert code for Exercise 1 here
+# Load the necessary libraries
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+
+# Get the world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Assume we have a data frame 'df' with a column 'country' and a column 'value'
+# df <- data.frame(country = ..., value = ...)
+
+# Merge the map data with your data
+merged_data <- merge(world_map@data, df, by.x = "name", by.y = "country", all.x = TRUE)
+
+# Replace NA values if necessary
+merged_data$value[is.na(merged_data$value)] <- 0
+
+# Generate the map
+ggplot(data = merged_data) +
+  geom_sf(aes(fill = value)) +
+  scale_fill_viridis_c()  # Adjust colors as needed
+
+
+
+
+
+
+
+```
+
+### Exercise 2
+
+...
+
