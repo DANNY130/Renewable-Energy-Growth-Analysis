@@ -17,4 +17,6 @@ Make sure you have the following installed:
 
 You can install the required packages by running the following commands in your R console:
 ```r
-install.packages(c('tidyverse', 'plotly', 'shiny', 'rnaturalearth', 'rnaturalearthdata', 'ggplot2', 'dplyr', 'ggthemes'))
+  install.packages(c('tidyverse', 'plotly', 'shiny', 'rnaturalearth', 'rnaturalearthdata', 'ggplot2', 'dplyr', 'ggthemes'))
+
+
